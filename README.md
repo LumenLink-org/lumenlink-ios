@@ -2,82 +2,67 @@
 
 iOS VPN application for LumenLink using NetworkExtension.
 
+**Website:** [lumenlink.org](https://lumenlink.org) · [Download](https://lumenlink.org/en/download) · [How-To Guide](https://lumenlink.org/en/how-to) · **API:** [api.lumenlink.org](https://api.lumenlink.org)
+
 ## Status
 
-**Current:** Foundation implementation with NetworkExtension structure
-**Next:** Complete XCFramework integration and tunnel implementation
+**Complete:** Full UI, Backend API, Discovery, PERSIA Mode, Emergency Contacts, Config fetch, Tunnel processing, UWB Discovery
 
 ## Architecture
 
 ```
-LumenLinkPacketTunnel (Swift)
-    ↓
-RustCore (XCFramework bindings)
-    ↓
-LumenLink Core (Rust)
-    ↓
-NEPacketTunnelFlow
+LumenLink (Main App)
+├── MainViewController, SettingsViewController
+├── DiscoverySettingsViewController, PersiaModeViewController, EmergencyContactViewController
+├── ApiClient, ConnectionStatusManager, DiscoveryManager, PersiaManager
+└── OnboardingViewController, AppDelegate
+
+LumenLinkPacketTunnel (Network Extension)
+├── PacketTunnelProvider → TunnelManager → RustCore
+├── DCAppAttestManager, UWBDiscoveryManager
+└── lumenlink_ios.xcframework (Rust FFI)
 ```
 
 ## Implementation Details
 
-### Current Implementation
+### Full Feature Set ✅
 
-- ✅ NetworkExtension structure
-- ✅ NEPacketTunnelProvider implementation
-- ✅ TUN interface configuration
-- ✅ XCFramework bindings structure
-- ✅ DCAppAttest integration structure
-- ✅ UWB discovery structure
-- ⏳ Complete XCFramework implementation (TODO)
-- ⏳ Tunnel packet processing (TODO)
-- ⏳ Discovery channel integration (TODO)
-- ⏳ Connection status UI (TODO)
+- **UI:** Main (Connect/Disconnect), Settings (Discovery, PERSIA, Emergency), Onboarding
+- **Backend API:** Config fetch from rendezvous, discovery log, getGateways
+- **Config Flow:** Main app fetches config → passes via providerConfiguration → tunnel uses it
+- **Discovery:** GPS, UWB, channel toggles, telemetry, scan
+- **PERSIA Mode:** Enable/disable, credential exchange, bandwidth limit, data forwarding
+- **Emergency:** Multiple contacts, panic mode, location updates, Siri integration
+- **Tunnel:** TunnelManager packet loop, MTU handling, reconnect, UWB discovery
 
 ### Components
 
-**1. PacketTunnelProvider**
-- Extends `NEPacketTunnelProvider`
-- Configures tunnel network settings
-- Starts Rust core tunnel
-- Manages packet flow
-
-**2. TunnelManager**
-- Manages tunnel lifecycle
-- Packet forwarding
-- Thread-safe operations
-
-**3. RustCore**
-- XCFramework bindings to Rust core
-- Tunnel management
-- Packet handling
-- Statistics
-
-**4. DCAppAttestManager**
-- Device attestation
-- Key generation
-- Attestation verification
-- Server communication
-
-**5. UWBDiscoveryManager**
-- UWB mesh discovery
-- Nearby device detection
-- Mesh connection establishment
-- NISession integration
+**1. PacketTunnelProvider** - Config from API/options, TunnelManager, UWB discovery
+**2. TunnelManager** - Packet read/write loop, MTU, error recovery
+**3. RustCore** - XCFramework bindings
+**4. ApiClient** - getConfig, getConfigData, logDiscovery
+**5. SettingsViewController** - Discovery, PERSIA, Emergency navigation
 
 ## Building
 
 ```bash
-# Build Rust XCFramework
-cd core
-cargo build --release --target aarch64-apple-ios
-cargo build --release --target x86_64-apple-ios
+# 1. Generate Xcode project (requires XcodeGen: brew install xcodegen)
+cd mobile/ios
+xcodegen generate
 
-# Create XCFramework
-xcodebuild -create-xcframework \
-    -library target/aarch64-apple-ios/release/liblumenlink_core.a \
-    -library target/x86_64-apple-ios/release/liblumenlink_core.a \
-    -output lumenlink_core.xcframework
+# Or create project manually in Xcode:
+# - File → New → Project → iOS App (LumenLink)
+# - File → New → Target → Network Extension (LumenLinkPacketTunnel)
+# - Add all Swift files to appropriate targets
+
+# 2. Build Rust XCFramework
+./scripts/build-xcframework.sh --release
+
+# 3. Add lumenlink_ios.xcframework to LumenLinkPacketTunnel target in Xcode
+# - Drag xcframework into project
+# - Link Binary With Libraries
+
+# 4. Build
 
 # Build iOS app
 cd mobile/ios

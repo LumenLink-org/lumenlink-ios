@@ -29,6 +29,7 @@ class EmergencyContactManager {
     private let keyEnabled = "emergency_enabled"
     private let keyContactNumber = "emergency_contact_number"
     private let keyContactName = "emergency_contact_name"
+    private let keyContacts = "emergency_contacts" // JSON array for multiple contacts
     private let keyPanicModeActive = "panic_mode_active"
     private let keyLastLocationSent = "last_location_sent"
     
@@ -85,6 +86,33 @@ class EmergencyContactManager {
         userDefaults.set(name, forKey: keyContactName)
         
         print("Emergency contact set: \(name ?? "Unknown") (\(number))")
+    }
+    
+    /**
+     * Get all emergency contacts (supports multiple)
+     */
+    func getAllContacts() -> [(number: String, name: String?)] {
+        if let data = userDefaults.data(forKey: keyContacts),
+           let decoded = try? JSONDecoder().decode([[String: String]].self, from: data) {
+            return decoded.compactMap { dict -> (String, String?)? in
+                guard let num = dict["number"] else { return nil }
+                return (num, dict["name"])
+            }
+        }
+        if let num = userDefaults.string(forKey: keyContactNumber) {
+            return [(num, userDefaults.string(forKey: keyContactName))]
+        }
+        return []
+    }
+    
+    /**
+     * Set multiple emergency contacts
+     */
+    func setAllContacts(_ contacts: [(number: String, name: String?)]) {
+        let encoded = contacts.map { ["number": $0.number, "name": $0.name ?? ""] }
+        if let data = try? JSONEncoder().encode(encoded) {
+            userDefaults.set(data, forKey: keyContacts)
+        }
     }
     
     /**
@@ -167,17 +195,14 @@ class EmergencyContactManager {
         
         locationUpdateTimer = Timer.scheduledTimer(withTimeInterval: locationUpdateInterval, repeats: true) { [weak self] _ in
             guard let self = self else { return }
-            
-            let contact = self.getEmergencyContact()
-            if let contactNumber = contact.number, !contactNumber.isEmpty {
-                self.sendLocationUpdate(to: contactNumber, name: contact.name)
+            for contact in self.getAllContacts() {
+                self.sendLocationUpdate(to: contact.number, name: contact.name)
             }
         }
         
-        // Send immediate update
-        let contact = getEmergencyContact()
-        if let contactNumber = contact.number {
-            sendLocationUpdate(to: contactNumber, name: contact.name)
+        // Send immediate update to all contacts
+        for contact in getAllContacts() {
+            sendLocationUpdate(to: contact.number, name: contact.name)
         }
     }
     

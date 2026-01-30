@@ -1,0 +1,65 @@
+name: LumenLink
+options:
+  bundleIdPrefix: com.lumenlink
+  deploymentTarget:
+    iOS: "14.0"
+  xcodeVersion: "15.0"
+  generateEmptyDirectories: true
+  groupSortPosition: top
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    TARGETED_DEVICE_FAMILY: "1,2"
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGN_STYLE: Automatic
+
+targets:
+  LumenLink:
+    type: application
+    platform: iOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: LumenLink
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.lumenlink.LumenLink
+        INFOPLIST_FILE: LumenLink/Info.plist
+        ENABLE_BITCODE: NO
+    entitlements:
+      path: LumenLink/LumenLink.entitlements
+    dependencies:
+      - target: LumenLinkPacketTunnel
+
+  LumenLinkPacketTunnel:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: LumenLinkPacketTunnel
+        excludes:
+          - "EmergencyContactManager.swift"
+          - "EmergencyContactViewController.swift"
+          - "SiriIntegration.swift"
+          - "RustCoreTests.swift"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.lumenlink.LumenLinkPacketTunnel
+        INFOPLIST_FILE: LumenLinkPacketTunnel/Info.plist
+        SKIP_INSTALL: YES
+        ENABLE_BITCODE: NO
+    entitlements:
+      path: LumenLinkPacketTunnel/LumenLinkPacketTunnel.entitlements
+
+  LumenLinkPacketTunnelTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: Tests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.lumenlink.LumenLinkPacketTunnelTests
+    dependencies:
+      - target: LumenLinkPacketTunnel

@@ -17,19 +17,19 @@ class UWBDiscoveryManager: NSObject, NISessionDelegate {
     private var session: NISession?
     private var discoveredDevices: [NIDiscoveryToken: DeviceInfo] = [:]
     
-    /// Start UWB discovery
+    /// Start UWB discovery (requires peer token exchange for full mesh - stub for now)
     func startDiscovery() {
         guard NISession.isSupported else {
             print("UWB not supported on this device")
             return
         }
-        
+        // Full UWB mesh requires out-of-band peer token exchange.
+        // NINearbyPeerConfiguration needs the peer's NIDiscoveryToken.
+        // For now, we create a session but don't run - token exchange would
+        // happen via discovery channel (e.g. QR code, Bluetooth) in production.
         session = NISession()
         session?.delegate = self
-        
-        // Create discovery configuration
-        let config = NINearbyPeerConfiguration(peerToken: generatePeerToken())
-        session?.run(config)
+        // session?.run(config) requires valid peer token - skip until token exchange implemented
     }
     
     /// Stop UWB discovery
